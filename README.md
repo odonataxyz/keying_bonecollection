@@ -1,0 +1,2 @@
+# keying_bonecollection
+ボーンコレクション単位でアニメーションさせるBlenderアドオン
