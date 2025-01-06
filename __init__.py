@@ -30,11 +30,6 @@ bl_info = {
 class BONECOLLECTION_GP_Keying(PropertyGroup):
     enabled: BoolProperty(name="Keying", default=False)
     
-class SCENE_GP_Keying(bpy.types.PropertyGroup):
-    autopin: BoolProperty(name="Auto Pin", description="選択ボーンコレクションを自動でピン", default=True)
-    
-
-    
 operator_length = 0
 @persistent
 def add_key_handler(scene):
@@ -54,17 +49,16 @@ def add_key_handler(scene):
 
     selected_bones = [b for b in data.bones if b.select]
     keying_collections = [c for c in data.collections if c.keying_bone_collection.enabled]
-    selected_collections = []
+    selected_keying_collections = []
     for b in selected_bones :
         for col in b.collections:
-            if col not in selected_collections and col.keying_bone_collection.enabled:
-                selected_collections.append(col)
+            if col not in selected_keying_collections and col.keying_bone_collection.enabled:
+                selected_keying_collections.append(col)
 
-    if scene.keying_bone_collection.autopin :
-        for col in keying_collections:
-            if col.name not in action.groups: continue
-            group = action.groups[col.name]
-            group.use_pin = col in selected_collections
+    for col in keying_collections:
+        if col.name not in action.groups: continue
+        group = action.groups[col.name]
+        group.use_pin = col in selected_keying_collections
 
     if not len(operators) or len(operators) == operator_length : return
     last_op = operators[len(operators)-1]
@@ -86,7 +80,7 @@ def add_key_handler(scene):
     frame_current = scene.frame_current
 
     insert_keys = ['location', 'rotation_euler', 'scale']
-    for collection in selected_collections:
+    for collection in selected_keying_collections:
         col_bones = collection.bones
         for bone in col_bones :
             for f in fcurves:
@@ -117,7 +111,6 @@ def add_key_handler(scene):
         if fcurve.group != group:
             fcurve.group = group
 
-    print("keying!", last_op.bl_idname)
     operator_length = len(operators)
 
 def _bonecol_draw(self:Panel, context:Context):
@@ -127,27 +120,17 @@ def _bonecol_draw(self:Panel, context:Context):
     if not active_bcoll: return
     layout.prop(active_bcoll.keying_bone_collection, "enabled", icon="FCURVE")
 
-def _dopesheet_draw(self:Header, context:Context):
-    layout = self.layout
-    layout.prop(context.scene.keying_bone_collection, "autopin")
-
 def register():
     bpy.utils.register_class(BONECOLLECTION_GP_Keying)
-    bpy.utils.register_class(SCENE_GP_Keying)
     bpy.app.handlers.depsgraph_update_post.append(add_key_handler)
     bpy.types.BoneCollection.keying_bone_collection = PointerProperty(type = BONECOLLECTION_GP_Keying)
-    bpy.types.Scene.keying_bone_collection = PointerProperty(type = SCENE_GP_Keying)
-    bpy.types.DOPESHEET_HT_header.append(_dopesheet_draw)
     DATA_PT_bone_collections.prepend(_bonecol_draw)
 
 def unregister():
     bpy.utils.unregister_class(BONECOLLECTION_GP_Keying)
-    bpy.utils.unregister_class(SCENE_GP_Keying)
     bpy.app.handlers.depsgraph_update_post.remove(add_key_handler)
-    bpy.types.DOPESHEET_HT_header.remove(_dopesheet_draw)
-    DATA_PT_bone_collections.remove(_bonecol_draw)
     del bpy.types.BoneCollection.keying_bone_collection
-    del bpy.types.Scene.keying_bone_collection
+    DATA_PT_bone_collections.remove(_bonecol_draw)
 
 if __name__ == '__main__':
     register()
