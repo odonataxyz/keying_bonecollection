@@ -33,8 +33,13 @@ class BONECOLLECTION_GP_Keying(PropertyGroup):
 operator_length = 0
 @persistent
 def add_key_handler(scene):
+
     global operator_length
     context = bpy.context
+    
+    is_playing = context.screen.is_animation_playing
+    if is_playing: return
+
     tool_settings = context.tool_settings
     if not hasattr(context, "object") : return
     ob = context.object
